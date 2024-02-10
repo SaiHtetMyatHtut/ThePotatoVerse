@@ -7,24 +7,31 @@ import (
 
 	"github.com/SaiHtetMyatHtut/potatoverse/db"
 	"github.com/SaiHtetMyatHtut/potatoverse/model"
+	"github.com/redis/go-redis/v9"
 )
 
-// userKey generates a key for a user with the given ID.
-func userKey(id int) string {
-	return fmt.Sprintf("User with ID %d", id)
+func userKey(id int64) string {
+	return fmt.Sprintf("users:%d", id)
 }
 
 // Insert inserts a user into the Redis repository.
-func Insert(ctx context.Context, user model.User) error {
+func Insert(ctx context.Context, user model.User) (model.User, error) {
 	db := db.NewRedisRepo()
+
+	// Increment the user ID.
+	id, err := db.Client.Incr(ctx, "user:id").Result()
+	if err != nil {
+		db.Close()
+		return user, fmt.Errorf("> Error Incrementing User ID: %w", err)
+	}
+	user.ID = id
+	key := userKey(id)
+
 	// Marshal user data into JSON format.
 	userData, err := json.Marshal(user)
 	if err != nil {
-		return fmt.Errorf("> Error Marshalling User: %w", err)
+		return user, fmt.Errorf("> Error Marshalling User: %w", err)
 	}
-
-	// userKey generates a unique key for the given user ID.
-	key := userKey(user.ID)
 
 	// txn is a pipeline for executing multiple Redis commands in a transaction.
 	txn := db.Client.TxPipeline()
@@ -35,7 +42,7 @@ func Insert(ctx context.Context, user model.User) error {
 	if res.Err() != nil {
 		txn.Discard()
 		db.Close()
-		return fmt.Errorf("> Error Setting User: %w", res.Err())
+		return user, fmt.Errorf("> Error Setting User: %w", res.Err())
 	}
 
 	// AddUserToSet adds a user to a set in Redis.
@@ -44,16 +51,16 @@ func Insert(ctx context.Context, user model.User) error {
 	if err := txn.SAdd(ctx, "users", key).Err(); err != nil {
 		txn.Discard()
 		db.Close()
-		return fmt.Errorf("> Error Adding User to Set: %w", err)
+		return user, fmt.Errorf("> Error Adding User to Set: %w", err)
 	}
 
 	// Exec executes the transaction and returns any error encountered.
 	if _, err := txn.Exec(ctx); err != nil {
 		db.Close()
-		return fmt.Errorf("> Error Executing Transaction: %w", err)
+		return user, fmt.Errorf("> Error Executing Transaction: %w", err)
 	}
 	db.Close()
-	return nil
+	return user, nil
 }
 
 func ReadAll(ctx context.Context) ([]model.User, error) {
@@ -88,7 +95,7 @@ func ReadAll(ctx context.Context) ([]model.User, error) {
 	return users, nil
 }
 
-func ReadByID(ctx context.Context, id int) (model.User, error) {
+func ReadByID(ctx context.Context, id int64) (model.User, error) {
 	db := db.NewRedisRepo()
 	var user model.User
 
@@ -100,7 +107,11 @@ func ReadByID(ctx context.Context, id int) (model.User, error) {
 	val, err := db.Client.Get(ctx, key).Result()
 	if err != nil {
 		db.Close()
-		return user, fmt.Errorf("> Error Getting User: %w", err)
+		if err == redis.Nil {
+			return user, fmt.Errorf("> User Not Found")
+		} else {
+			return user, fmt.Errorf("> Error Getting User: %w", err)
+		}
 	}
 
 	// Unmarshal user data from JSON format.
@@ -132,7 +143,7 @@ func Update(ctx context.Context, user model.User) error {
 	return nil
 }
 
-func Delete(ctx context.Context, id int) error {
+func Delete(ctx context.Context, id int64) error {
 	db := db.NewRedisRepo()
 	// userKey generates a unique key for the given user ID.
 	key := userKey(id)
