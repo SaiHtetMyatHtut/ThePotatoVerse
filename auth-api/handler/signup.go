@@ -1,12 +1,13 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
+	"io"
 	"net/http"
 	"time"
 
 	"github.com/SaiHtetMyatHtut/potatoverse/model"
-	"github.com/SaiHtetMyatHtut/potatoverse/repo"
 )
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
@@ -23,20 +24,39 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	hashedPassword, err := HashPassword(body.Password)
+	newUser := model.User{
+		Username:  body.Username,
+		Password:  body.Password,
+		CreatedAt: time.Now().UTC(),
+		LastLogin: time.Now().UTC(),
+	}
+
+	reqBody, err := json.Marshal(newUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	newUser := model.User{
-		Username:       body.Username,
-		HashedPassword: hashedPassword,
-		CreatedAt:      time.Now().UTC(),
-		LastLogin:      time.Now().UTC(),
+	resp, err := http.Post("http://localhost:8081/user", "application/json", bytes.NewBuffer(reqBody))
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
-	// TODO
-	user, err := repo.Insert(r.Context(), newUser)
+	defer resp.Body.Close()
+
+	var bodyBytes []byte
+	if resp.Body == nil {
+		http.Error(w, "Empty Response Body", http.StatusInternalServerError)
+		return
+	}
+	bodyBytes, err = io.ReadAll(resp.Body)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	var user model.User
+	err = json.Unmarshal(bodyBytes, &user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return

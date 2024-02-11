@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/db"
-	"github.com/SaiHtetMyatHtut/potatoverse/model"
+	"github.com/SaiHtetMyatHtut/potatoverse/user-api/db"
+	"github.com/SaiHtetMyatHtut/potatoverse/user-api/model"
 	"github.com/redis/go-redis/v9"
 )
 

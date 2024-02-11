@@ -8,8 +8,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/model"
-	"github.com/SaiHtetMyatHtut/potatoverse/repo"
+	"github.com/SaiHtetMyatHtut/potatoverse/user-api/model"
+	"github.com/SaiHtetMyatHtut/potatoverse/user-api/repo"
+	"github.com/SaiHtetMyatHtut/potatoverse/user-api/util"
 )
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
@@ -34,6 +35,18 @@ func UserHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func GetAllUsers(w http.ResponseWriter, r *http.Request) {
+	// users, err := repo.ReadAll(r.Context())
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// res, err := json.Marshal(users)
+	// if err != nil {
+	// 	http.Error(w, err.Error(), http.StatusInternalServerError)
+	// 	return
+	// }
+	// w.WriteHeader(http.StatusOK)
+	// w.Write(res)
 	users, err := repo.ReadAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -44,6 +57,7 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	w.Header().Set("Content-Type", "application/json")
 	w.WriteHeader(http.StatusOK)
 	w.Write(res)
 }
@@ -80,10 +94,15 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	newHashPassword, err := util.HashPassword(body.Password)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	newUser := model.User{
 		Username:       body.Username,
-		HashedPassword: body.Password,
+		HashedPassword: newHashPassword,
 		CreatedAt:      time.Now().UTC(),
 		LastLogin:      time.Now().UTC(),
 	}
@@ -119,16 +138,43 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, u := range user {
-		if u.Username == body.Username && u.HashedPassword == body.Password {
+		if u.ID == body.ID {
+			var newUser struct {
+				ID             int64     `json:"id"`
+				Username       string    `json:"username"`
+				HashedPassword string    `json:"password"`
+				CreatedAt      time.Time `json:"created_at"`
+				LastLogin      time.Time `json:"last_login"`
+			}
+			newUser.ID = u.ID
+			if body.Username != "" {
+				newUser.Username = body.Username
+			} else {
+				newUser.Username = u.Username
+			}
+			if body.Password != "" {
+				newHashPassword, err := util.HashPassword(body.Password)
+				if err != nil {
+					http.Error(w, err.Error(), http.StatusInternalServerError)
+					return
+				}
+				newUser.HashedPassword = newHashPassword
+			} else {
+				newUser.HashedPassword = u.HashedPassword
+			}
+			err = repo.Update(r.Context(), newUser)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
 			var response struct {
 				ID        int64     `json:"id"`
 				Username  string    `json:"username"`
 				CreatedAt time.Time `json:"created_at"`
 				LastLogin time.Time `json:"last_login"`
 			}
-			response.ID = u.ID
-			response.Username = u.Username
-			response.CreatedAt = u.CreatedAt
+			response.ID = newUser.ID
+			response.Username = newUser.Username
 			res, err := json.Marshal(response)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -144,10 +190,36 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 
 func DeleteUser(w http.ResponseWriter, r *http.Request) {
 	// Implement delete user logic here
-	// Delete the user from the database
-	w.WriteHeader(http.StatusNoContent)
+	var body struct {
+		ID       int64  `json:"id"`
+		Username string `json:"username"`
+		Password string `json:"password"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	user, err := repo.ReadAll(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	for _, u := range user {
+		if u.ID == body.ID && u.Username == body.Username && util.CheckPasswordHash(body.Password, u.HashedPassword) {
+			err = repo.Delete(r.Context(), body.ID)
+			if err != nil {
+				http.Error(w, err.Error(), http.StatusInternalServerError)
+				return
+			}
+			w.Write([]byte("User deleted successfully"))
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
+	}
+	http.Error(w, "User not found", http.StatusNotFound)
 }
 
+// TODO
 func UpdatePartialUser(w http.ResponseWriter, r *http.Request) {
 	// Implement update partial user logic here
 	var user struct {
