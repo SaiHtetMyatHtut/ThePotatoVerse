@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/model"
+	"github.com/SaiHtetMyatHtut/potatoverse/auth-api/model"
 )
 
 func SignUp(w http.ResponseWriter, r *http.Request) {

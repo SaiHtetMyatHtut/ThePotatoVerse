@@ -1,4 +1,4 @@
-module github.com/SaiHtetMyatHtut/potatoverse
+module github.com/SaiHtetMyatHtut/potatoverse/auth-api
 
 go 1.21.6
 

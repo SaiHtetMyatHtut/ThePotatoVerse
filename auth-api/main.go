@@ -4,7 +4,7 @@ import (
 	"log"
 	"net/http"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/handler"
+	"github.com/SaiHtetMyatHtut/potatoverse/auth-api/handler"
 )
 
 func main() {

@@ -4,6 +4,7 @@ import (
 	"log"
 	"os"
 	"os/exec"
+	"time"
 )
 
 func main() {
@@ -23,15 +24,18 @@ func main() {
 	go func() {
 		if err := authCmd.Run(); err != nil {
 			log.Fatal(err)
+			authCmd.Process.Kill()
 		}
 	}()
 
 	go func() {
 		if err := userCmd.Run(); err != nil {
 			log.Fatal(err)
+			userCmd.Process.Kill()
 		}
 	}()
 
 	for {
+		time.Sleep(time.Second) // Introduce a delay to prevent 100% CPU usage
 	}
 }
