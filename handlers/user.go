@@ -1,6 +1,4 @@
-// need to move user microservice
-
-package handler
+package handlers
 
 import (
 	"encoding/json"
@@ -8,9 +6,9 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/user-api/model"
-	"github.com/SaiHtetMyatHtut/potatoverse/user-api/repo"
-	"github.com/SaiHtetMyatHtut/potatoverse/user-api/util"
+	"github.com/SaiHtetMyatHtut/potatoverse/models"
+	"github.com/SaiHtetMyatHtut/potatoverse/repo"
+	"github.com/SaiHtetMyatHtut/potatoverse/utils"
 )
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
@@ -85,6 +83,7 @@ func GetUserByID(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
+// Only For Admin Creation, Other User Creation is in SignUp
 func CreateUser(w http.ResponseWriter, r *http.Request) {
 	var body struct {
 		Username string `json:"username"`
@@ -94,13 +93,13 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	newHashPassword, err := util.HashPassword(body.Password)
+	newHashPassword, err := utils.HashPassword(body.Password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	newUser := model.User{
+	newUser := models.User{
 		Username:       body.Username,
 		HashedPassword: newHashPassword,
 		CreatedAt:      time.Now().UTC(),
@@ -153,7 +152,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 				newUser.Username = u.Username
 			}
 			if body.Password != "" {
-				newHashPassword, err := util.HashPassword(body.Password)
+				newHashPassword, err := utils.HashPassword(body.Password)
 				if err != nil {
 					http.Error(w, err.Error(), http.StatusInternalServerError)
 					return
@@ -205,7 +204,7 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	for _, u := range user {
-		if u.ID == body.ID && u.Username == body.Username && util.CheckPasswordHash(body.Password, u.HashedPassword) {
+		if u.ID == body.ID && u.Username == body.Username && utils.VerifyPassword(body.Password, u.HashedPassword) {
 			err = repo.Delete(r.Context(), body.ID)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)

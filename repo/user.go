@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/user-api/db"
-	"github.com/SaiHtetMyatHtut/potatoverse/user-api/model"
+	"github.com/SaiHtetMyatHtut/potatoverse/db"
+	"github.com/SaiHtetMyatHtut/potatoverse/models"
 	"github.com/redis/go-redis/v9"
 )
 
@@ -15,7 +15,7 @@ func userKey(id int64) string {
 }
 
 // Insert inserts a user into the Redis repository.
-func Insert(ctx context.Context, user model.User) (model.User, error) {
+func Insert(ctx context.Context, user models.User) (models.User, error) {
 	db := db.NewRedisRepo()
 
 	// Increment the user ID.
@@ -63,9 +63,9 @@ func Insert(ctx context.Context, user model.User) (model.User, error) {
 	return user, nil
 }
 
-func ReadAll(ctx context.Context) ([]model.User, error) {
+func ReadAll(ctx context.Context) ([]models.User, error) {
 	db := db.NewRedisRepo()
-	var users []model.User
+	var users []models.User
 
 	// SMembers returns all the members of the set in the Redis repository.
 	// If the set does not exist, it returns an empty slice.
@@ -83,7 +83,7 @@ func ReadAll(ctx context.Context) ([]model.User, error) {
 			return users, fmt.Errorf("> Error Getting User: %w", err)
 		}
 
-		var user model.User
+		var user models.User
 		if err := json.Unmarshal([]byte(val), &user); err != nil {
 			db.Close()
 			return users, fmt.Errorf("> Error Unmarshalling User: %w", err)
@@ -95,9 +95,9 @@ func ReadAll(ctx context.Context) ([]model.User, error) {
 	return users, nil
 }
 
-func ReadByID(ctx context.Context, id int64) (model.User, error) {
+func ReadByID(ctx context.Context, id int64) (models.User, error) {
 	db := db.NewRedisRepo()
-	var user model.User
+	var user models.User
 
 	// userKey generates a unique key for the given user ID.
 	key := userKey(id)
@@ -123,7 +123,7 @@ func ReadByID(ctx context.Context, id int64) (model.User, error) {
 	return user, nil
 }
 
-func Update(ctx context.Context, user model.User) error {
+func Update(ctx context.Context, user models.User) error {
 	db := db.NewRedisRepo()
 	// Marshal user data into JSON format.
 	userData, err := json.Marshal(user)
