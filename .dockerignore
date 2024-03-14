@@ -1,0 +1,8 @@
+*.tar
+**/__pycache__/
+env/
+.vscode/
+.tests/
+*.mdj
+*.MD
+*.md

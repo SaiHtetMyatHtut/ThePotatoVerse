@@ -6,8 +6,11 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/models"
-	"github.com/SaiHtetMyatHtut/potatoverse/repo"
+	"github.com/SaiHtetMyatHtut/potatoverse/data/models"
+	repo "github.com/SaiHtetMyatHtut/potatoverse/data/repositories"
+	"github.com/SaiHtetMyatHtut/potatoverse/db"
+	authschemas "github.com/SaiHtetMyatHtut/potatoverse/schemas/auth_schemas"
+	userschemas "github.com/SaiHtetMyatHtut/potatoverse/schemas/user_schemas"
 	"github.com/SaiHtetMyatHtut/potatoverse/utils"
 )
 
@@ -45,7 +48,8 @@ func GetAllUsers(w http.ResponseWriter, r *http.Request) {
 	// }
 	// w.WriteHeader(http.StatusOK)
 	// w.Write(res)
-	users, err := repo.ReadAll(r.Context())
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	users, err := userRepository.ReadAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -68,13 +72,21 @@ func GetUserByID(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	user, err := repo.ReadByID(r.Context(), id)
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	user, err := userRepository.ReadByID(r.Context(), id)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	res, err := json.Marshal(user)
+	// TODO: this is not the best practice
+	var userSchema userschemas.UserSchema
+	userSchema.ID = user.ID
+	userSchema.Username = user.Username
+	userSchema.CreatedAt = user.CreatedAt
+	userSchema.LastLogin = user.LastLogin
+
+	res, err := json.Marshal(userSchema)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -85,15 +97,14 @@ func GetUserByID(w http.ResponseWriter, r *http.Request) {
 
 // Only For Admin Creation, Other User Creation is in SignUp
 func CreateUser(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var body authschemas.UserSignUpSchema
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	newHashPassword, err := utils.HashPassword(body.Password)
+
+	// TODO: isn't this error should be handled under hashpassword or not?
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -104,7 +115,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:      time.Now().UTC(),
 		LastLogin:      time.Now().UTC(),
 	}
-	user, err := repo.Insert(r.Context(), newUser)
+  
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	user, err := userRepository.Insert(r.Context(), newUser)
+  
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -119,16 +133,14 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 }
 
 func UpdateUser(w http.ResponseWriter, r *http.Request) {
-	var body struct {
-		ID       int64  `json:"id"`
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+	var body userschemas.UpdateUserSchema
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := repo.ReadAll(r.Context())
+
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	user, err := userRepository.ReadAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -158,7 +170,7 @@ func UpdateUser(w http.ResponseWriter, r *http.Request) {
 			} else {
 				newUser.HashedPassword = u.HashedPassword
 			}
-			err = repo.Update(r.Context(), newUser)
+			err = userRepository.Update(r.Context(), newUser)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
@@ -195,14 +207,16 @@ func DeleteUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	user, err := repo.ReadAll(r.Context())
+
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	user, err := userRepository.ReadAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	for _, u := range user {
 		if u.ID == body.ID && u.Username == body.Username && utils.VerifyPassword(body.Password, u.HashedPassword) {
-			err = repo.Delete(r.Context(), body.ID)
+			err = userRepository.Delete(r.Context(), body.ID)
 			if err != nil {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return

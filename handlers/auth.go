@@ -7,8 +7,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/models"
-	"github.com/SaiHtetMyatHtut/potatoverse/repo"
+	"github.com/SaiHtetMyatHtut/potatoverse/data/models"
+	repo "github.com/SaiHtetMyatHtut/potatoverse/data/repositories"
+	"github.com/SaiHtetMyatHtut/potatoverse/db"
+	authschemas "github.com/SaiHtetMyatHtut/potatoverse/schemas/auth_schemas"
 	"github.com/SaiHtetMyatHtut/potatoverse/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
@@ -19,16 +21,15 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid Request Method", http.StatusMethodNotAllowed)
 		return
 	}
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+
+	var body authschemas.UserSignInSchema
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	users, err := repo.ReadAll(r.Context())
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	users, err := userRepository.ReadAll(r.Context())
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -48,10 +49,7 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 				http.Error(w, err.Error(), http.StatusInternalServerError)
 				return
 			}
-			var response struct {
-				Username string `json:"username"`
-				Jwt      string `json:"jwt"`
-			}
+			var response authschemas.UserSignInResponseSchema
 
 			response.Username = u.Username
 			response.Jwt = tokenString
@@ -73,10 +71,8 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, "Invalid Request Method", http.StatusMethodNotAllowed)
 		return
 	}
-	var body struct {
-		Username string `json:"username"`
-		Password string `json:"password"`
-	}
+
+	var body authschemas.UserSignUpSchema
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
@@ -96,7 +92,9 @@ func SignUp(w http.ResponseWriter, r *http.Request) {
 		LastLogin:      time.Now().UTC(),
 	}
 
-	user, err := repo.Insert(r.Context(), newUser)
+	// TODO: this should use DI. not manually inject.
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	user, err := userRepository.Insert(r.Context(), newUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
