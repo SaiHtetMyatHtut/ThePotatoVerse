@@ -24,7 +24,7 @@ func main() {
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.HandleFunc("/signin", handlers.SignIn)
 	http.HandleFunc("/signup", handlers.SignUp)
-	// http.HandleFunc("/refresh", handlers.RefreshJwt)
+	http.HandleFunc("/refresh", handlers.RefreshJwt)
 	http.HandleFunc("/user", handlers.UserHandler)
 	http.Handle("/query", srv)
 

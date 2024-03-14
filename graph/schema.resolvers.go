@@ -6,26 +6,64 @@ package graph
 
 import (
 	"context"
-	"fmt"
+	"log"
+	"strconv"
+	"time"
 
 	"github.com/SaiHtetMyatHtut/potatoverse/graph/model"
+	"github.com/SaiHtetMyatHtut/potatoverse/models"
+	"github.com/SaiHtetMyatHtut/potatoverse/repo"
+	"github.com/SaiHtetMyatHtut/potatoverse/utils"
 )
 
-// CreateTodo is the resolver for the createTodo field.
-func (r *mutationResolver) CreateTodo(ctx context.Context, input model.NewTodo) (*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: CreateTodo - createTodo"))
+// CreateUser is the resolver for the createUser field.
+func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) (*model.User, error) {
+	newHashPassword, err := utils.HashPassword(input.Password)
+	if err != nil {
+		panic(err)
+	}
+	newUser := models.User{
+		Username:       input.Username,
+		HashedPassword: newHashPassword,
+		CreatedAt:      time.Now().UTC(),
+		LastLogin:      time.Now().UTC(),
+	}
+	user, _ := repo.Insert(ctx, newUser)
+
+	resUser := &model.User{
+		ID:        strconv.FormatInt(user.ID, 10), // Convert int64 to string
+		Username:  user.Username,
+		CreatedAt: user.CreatedAt.Format(time.RFC3339), // Convert time.Time to string
+		LastLogin: user.LastLogin.Format(time.RFC3339),
+	}
+
+	return resUser, nil
 }
 
-// Todos is the resolver for the todos field.
-func (r *queryResolver) Todos(ctx context.Context) ([]*model.Todo, error) {
-	panic(fmt.Errorf("not implemented: Todos - todos"))
+// Users is the resolver for the users field.
+func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
+	users, _ := repo.ReadAll(ctx)
+	var resUsers []*model.User
+	for _, u := range users {
+		resUser := &model.User{
+			ID:        strconv.FormatInt(u.ID, 10), // Convert int64 to string
+			Username:  u.Username,
+			CreatedAt: u.CreatedAt.Format(time.RFC3339), // Convert time.Time to string
+			LastLogin: u.LastLogin.Format(time.RFC3339),
+		}
+		resUsers = append(resUsers, resUser)
+	}
+	return resUsers, nil
 }
 
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
 // Query returns QueryResolver implementation.
-func (r *Resolver) Query() QueryResolver { return &queryResolver{r} }
+func (r *Resolver) Query() QueryResolver {
+	log.Println("QueryResolver")
+	return &queryResolver{r}
+}
 
 type mutationResolver struct{ *Resolver }
 type queryResolver struct{ *Resolver }

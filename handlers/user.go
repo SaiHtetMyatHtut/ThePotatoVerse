@@ -98,20 +98,17 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	newUser := models.User{
 		Username:       body.Username,
 		HashedPassword: newHashPassword,
 		CreatedAt:      time.Now().UTC(),
 		LastLogin:      time.Now().UTC(),
 	}
-	// TODO
 	user, err := repo.Insert(r.Context(), newUser)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-
 	res, err := json.Marshal(user)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
