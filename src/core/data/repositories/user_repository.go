@@ -7,6 +7,7 @@ import (
 
 	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/models"
 	"github.com/redis/go-redis/v9"
+	"go.uber.org/dig"
 )
 
 func userKey(id int64) string {
@@ -17,8 +18,18 @@ type UserRepository struct {
 	client *redis.Client
 }
 
-func NewUserRepository(client *redis.Client) UserRepository {
-	return UserRepository{client: client}
+type UserRepositoryDependencies struct {
+	dig.In
+
+	Client *redis.Client `name:"Redis"`
+}
+
+func NewUserRepository(client *redis.Client) *UserRepository {
+	return &UserRepository{client: client}
+}
+
+func NewNewUserRepository(deps UserRepositoryDependencies) UserRepository {
+	return UserRepository{client: deps.Client}
 }
 
 // Insert inserts a user into the Redis repository.
@@ -26,7 +37,7 @@ func (r UserRepository) Insert(ctx context.Context, user models.User) (models.Us
 	// Increment the user ID.
 	id, err := r.client.Incr(ctx, "user:id").Result()
 	if err != nil {
-		r.client.Close()
+		// r.client.Close()
 		return user, fmt.Errorf("> Error Incrementing User ID: %w", err)
 	}
 	user.ID = id
@@ -46,7 +57,7 @@ func (r UserRepository) Insert(ctx context.Context, user models.User) (models.Us
 	res := txn.SetNX(ctx, key, string(userData), 0)
 	if res.Err() != nil {
 		txn.Discard()
-		r.client.Close()
+		// r.client.Close()
 		return user, fmt.Errorf("> Error Setting User: %w", res.Err())
 	}
 
@@ -55,16 +66,16 @@ func (r UserRepository) Insert(ctx context.Context, user models.User) (models.Us
 	// If the operation fails, it returns an error.
 	if err := txn.SAdd(ctx, "users", key).Err(); err != nil {
 		txn.Discard()
-		r.client.Close()
+		// r.client.Close()
 		return user, fmt.Errorf("> Error Adding User to Set: %w", err)
 	}
 
 	// Exec executes the transaction and returns any error encountered.
 	if _, err := txn.Exec(ctx); err != nil {
-		r.client.Close()
+		// r.client.Close()
 		return user, fmt.Errorf("> Error Executing Transaction: %w", err)
 	}
-	r.client.Close()
+	// r.client.Close()
 	return user, nil
 }
 
@@ -75,7 +86,7 @@ func (r UserRepository) ReadAll(ctx context.Context) ([]models.User, error) {
 	// If the set does not exist, it returns an empty slice.
 	keys, err := r.client.SMembers(ctx, "users").Result()
 	if err != nil {
-		r.client.Close()
+		// r.client.Close()
 		return users, fmt.Errorf("> Error Getting Users: %w", err)
 	}
 
@@ -83,19 +94,19 @@ func (r UserRepository) ReadAll(ctx context.Context) ([]models.User, error) {
 	for _, key := range keys {
 		val, err := r.client.Get(ctx, key).Result()
 		if err != nil {
-			r.client.Close()
+			// r.client.Close()
 			return users, fmt.Errorf("> Error Getting User: %w", err)
 		}
 
 		var user models.User
 		if err := json.Unmarshal([]byte(val), &user); err != nil {
-			r.client.Close()
+			// r.client.Close()
 			return users, fmt.Errorf("> Error Unmarshalling User: %w", err)
 		}
 
 		users = append(users, user)
 	}
-	r.client.Close()
+	// r.client.Close()
 	return users, nil
 }
 
@@ -109,7 +120,7 @@ func (r UserRepository) ReadByID(ctx context.Context, id int64) (models.User, er
 	// If the key does not exist, it returns a nil value.
 	val, err := r.client.Get(ctx, key).Result()
 	if err != nil {
-		r.client.Close()
+		// r.client.Close()
 		if err == redis.Nil {
 			return user, fmt.Errorf("> User Not Found")
 		} else {
@@ -119,10 +130,10 @@ func (r UserRepository) ReadByID(ctx context.Context, id int64) (models.User, er
 
 	// Unmarshal user data from JSON format.
 	if err := json.Unmarshal([]byte(val), &user); err != nil {
-		r.client.Close()
+		// r.client.Close()
 		return user, fmt.Errorf("> Error Unmarshalling User: %w", err)
 	}
-	r.client.Close()
+	// r.client.Close()
 	return user, nil
 }
 
@@ -141,7 +152,7 @@ func (r UserRepository) Update(ctx context.Context, user models.User) error {
 	if err := r.client.Set(ctx, key, string(userData), 0).Err(); err != nil {
 		return fmt.Errorf("> Error Setting User: %w", err)
 	}
-	r.client.Close()
+	// r.client.Close()
 	return nil
 }
 
@@ -152,16 +163,16 @@ func (r UserRepository) Delete(ctx context.Context, id int64) error {
 	// Del removes the key from the Redis repository.
 	// It returns the number of keys that were removed.
 	if err := r.client.Del(ctx, key).Err(); err != nil {
-		r.client.Close()
+		// r.client.Close()
 		return fmt.Errorf("> Error Deleting User: %w", err)
 	}
 
 	// SRem removes the specified members from the set stored at the key.
 	// It returns the number of members that were removed from the set.
 	if err := r.client.SRem(ctx, "users", key).Err(); err != nil {
-		r.client.Close()
+		// r.client.Close()
 		return fmt.Errorf("> Error Removing User from Set: %w", err)
 	}
-	r.client.Close()
+	// r.client.Close()
 	return nil
 }

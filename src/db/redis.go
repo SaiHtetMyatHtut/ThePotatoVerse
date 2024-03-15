@@ -22,7 +22,7 @@ func NewRedisRepo() *RedisRepo {
 
 func NewRedisClient() *redis.Client {
 	return redis.NewClient(&redis.Options{
-		Addr:     configs.Env.Redis.Host + configs.Env.Redis.Port,
+		Addr:     configs.Env.Redis.Host + ":" + configs.Env.Redis.Port,
 		Password: "",
 		DB:       0,
 	})

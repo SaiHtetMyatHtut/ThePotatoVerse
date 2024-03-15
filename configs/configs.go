@@ -12,11 +12,16 @@ type (
 		Struct to holds the env values.
 	*/
 	env struct {
-		Redis redis `json:"redis"`
+		Redis  redis  `json:"redis"`
+		Server server `json:"server"`
 	}
 
 	redis struct {
 		Host string `json:"host"`
+		Port string `json:"port"`
+	}
+
+	server struct {
 		Port string `json:"port"`
 	}
 )

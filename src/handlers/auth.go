@@ -66,10 +66,10 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
-	// if r.Method != http.MethodPost {
-	// 	http.Error(w, "Invalid Request Method", http.StatusMethodNotAllowed)
-	// 	return
-	// }
+	if r.Method != http.MethodPost {
+		http.Error(w, "Invalid Request Method", http.StatusMethodNotAllowed)
+		return
+	}
 
 	var body authschemas.UserSignUpSchema
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
