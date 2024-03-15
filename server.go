@@ -25,7 +25,7 @@ func main() {
 	http.HandleFunc("/signin", handlers.SignIn)
 	http.HandleFunc("/signup", handlers.SignUp)
 	http.HandleFunc("/refresh", handlers.RefreshJwt)
-	http.HandleFunc("/user", handlers.UserHandler)
+	http.HandleFunc("/users", handlers.UserHandler)
 	http.Handle("/query", srv)
 
 	log.Printf("connect to http://localhost:%s/ for GraphQL playground", port)

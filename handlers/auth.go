@@ -36,7 +36,6 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 	}
 
 	for _, u := range users {
-		log.Printf("The Password is %s", utils.VerifyPassword(u.HashedPassword, body.Password))
 		if u.Username == body.Username && utils.VerifyPassword(u.HashedPassword, body.Password) {
 			log.Printf("User %s has logged in", u.Username)
 			token := jwt.New(jwt.SigningMethodHS256)
