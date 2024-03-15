@@ -11,9 +11,10 @@ import (
 	"time"
 
 	"github.com/SaiHtetMyatHtut/potatoverse/graph/model"
-	"github.com/SaiHtetMyatHtut/potatoverse/models"
-	"github.com/SaiHtetMyatHtut/potatoverse/repo"
-	"github.com/SaiHtetMyatHtut/potatoverse/utils"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/models"
+	repo "github.com/SaiHtetMyatHtut/potatoverse/src/core/data/repositories"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/db"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/utils"
 )
 
 // CreateUser is the resolver for the createUser field.
@@ -28,7 +29,9 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 		CreatedAt:      time.Now().UTC(),
 		LastLogin:      time.Now().UTC(),
 	}
-	user, _ := repo.Insert(ctx, newUser)
+
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	user, _ := userRepository.Insert(ctx, newUser)
 
 	resUser := &model.User{
 		ID:        strconv.FormatInt(user.ID, 10), // Convert int64 to string
@@ -42,7 +45,8 @@ func (r *mutationResolver) CreateUser(ctx context.Context, input model.NewUser) 
 
 // Users is the resolver for the users field.
 func (r *queryResolver) Users(ctx context.Context) ([]*model.User, error) {
-	users, _ := repo.ReadAll(ctx)
+	userRepository := repo.NewUserRepository(db.NewRedisClient())
+	users, _ := userRepository.ReadAll(ctx)
 	var resUsers []*model.User
 	for _, u := range users {
 		resUser := &model.User{

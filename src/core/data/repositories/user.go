@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/data/models"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/models"
 	"github.com/redis/go-redis/v9"
 )
 

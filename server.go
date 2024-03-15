@@ -8,7 +8,7 @@ import (
 	"github.com/99designs/gqlgen/graphql/handler"
 	"github.com/99designs/gqlgen/graphql/playground"
 	"github.com/SaiHtetMyatHtut/potatoverse/graph"
-	"github.com/SaiHtetMyatHtut/potatoverse/handlers"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/handlers"
 )
 
 const defaultPort = "8080"
@@ -23,7 +23,7 @@ func main() {
 
 	http.Handle("/", playground.Handler("GraphQL playground", "/query"))
 	http.HandleFunc("/signin", handlers.SignIn)
-	http.HandleFunc("/signup", handlers.SignUp)
+	http.HandleFunc("POST /signup", handlers.SignUp)
 	http.HandleFunc("/refresh", handlers.RefreshJwt)
 	http.HandleFunc("/users", handlers.UserHandler)
 	http.Handle("/query", srv)

@@ -7,11 +7,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/data/models"
-	repo "github.com/SaiHtetMyatHtut/potatoverse/data/repositories"
-	"github.com/SaiHtetMyatHtut/potatoverse/db"
-	authschemas "github.com/SaiHtetMyatHtut/potatoverse/schemas/auth_schemas"
-	"github.com/SaiHtetMyatHtut/potatoverse/utils"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/models"
+	repo "github.com/SaiHtetMyatHtut/potatoverse/src/core/data/repositories"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/db"
+	authschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/auth_schemas"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/utils"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -66,10 +66,10 @@ func SignIn(w http.ResponseWriter, r *http.Request) {
 }
 
 func SignUp(w http.ResponseWriter, r *http.Request) {
-	if r.Method != http.MethodPost {
-		http.Error(w, "Invalid Request Method", http.StatusMethodNotAllowed)
-		return
-	}
+	// if r.Method != http.MethodPost {
+	// 	http.Error(w, "Invalid Request Method", http.StatusMethodNotAllowed)
+	// 	return
+	// }
 
 	var body authschemas.UserSignUpSchema
 	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {

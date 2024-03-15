@@ -6,12 +6,12 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/SaiHtetMyatHtut/potatoverse/data/models"
-	repo "github.com/SaiHtetMyatHtut/potatoverse/data/repositories"
-	"github.com/SaiHtetMyatHtut/potatoverse/db"
-	authschemas "github.com/SaiHtetMyatHtut/potatoverse/schemas/auth_schemas"
-	userschemas "github.com/SaiHtetMyatHtut/potatoverse/schemas/user_schemas"
-	"github.com/SaiHtetMyatHtut/potatoverse/utils"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/models"
+	repo "github.com/SaiHtetMyatHtut/potatoverse/src/core/data/repositories"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/db"
+	authschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/auth_schemas"
+	userschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/user_schemas"
+	"github.com/SaiHtetMyatHtut/potatoverse/src/utils"
 )
 
 func UserHandler(w http.ResponseWriter, r *http.Request) {
@@ -115,10 +115,10 @@ func CreateUser(w http.ResponseWriter, r *http.Request) {
 		CreatedAt:      time.Now().UTC(),
 		LastLogin:      time.Now().UTC(),
 	}
-  
+
 	userRepository := repo.NewUserRepository(db.NewRedisClient())
 	user, err := userRepository.Insert(r.Context(), newUser)
-  
+
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
