@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/SaiHtetMyatHtut/potatoverse/src/core/domain/services"
+	authschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/auth_schemas"
 	userschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/user_schemas"
 	"go.uber.org/dig"
 )
@@ -95,7 +96,27 @@ func (us *UserController) getUserById(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-func (us *UserController) createUser(w http.ResponseWriter, r *http.Request) {}
+func (us *UserController) createUser(w http.ResponseWriter, r *http.Request) {
+	var body authschemas.UserSignUpSchema
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+
+	user, err := us.userService.CreateUser(r.Context(), body)
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	res, err := json.Marshal(user)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.WriteHeader(http.StatusCreated)
+	w.Write(res)
+}
 
 func (us *UserController) updateUser(w http.ResponseWriter, r *http.Request) {}
 
