@@ -7,6 +7,7 @@ import (
 	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/models"
 	"github.com/SaiHtetMyatHtut/potatoverse/src/core/data/repositories"
 	authschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/auth_schemas"
+	userschemas "github.com/SaiHtetMyatHtut/potatoverse/src/schemas/user_schemas"
 	"github.com/SaiHtetMyatHtut/potatoverse/src/utils"
 	"go.uber.org/dig"
 )
@@ -60,4 +61,9 @@ func (us *UserService) CreateUser(ctx context.Context, userDTO authschemas.UserS
 	}
 
 	return user, nil
+}
+
+func (us *UserService) UpdateUser(ctx context.Context, userUpdateDTO userschemas.UpdateUserSchema) error {
+	// TODO
+	return nil
 }

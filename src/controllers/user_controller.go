@@ -118,7 +118,13 @@ func (us *UserController) createUser(w http.ResponseWriter, r *http.Request) {
 	w.Write(res)
 }
 
-func (us *UserController) updateUser(w http.ResponseWriter, r *http.Request) {}
+func (us *UserController) updateUser(w http.ResponseWriter, r *http.Request) {
+	var body userschemas.UpdateUserSchema
+	if err := json.NewDecoder(r.Body).Decode(&body); err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+}
 
 func (us *UserController) deleteUser(w http.ResponseWriter, r *http.Request) {}
 
