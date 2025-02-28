@@ -1,0 +1,13 @@
+server:
+  port: 8080
+  read_timeout: 10s
+  write_timeout: 10s
+  idle_timeout: 120s
+
+db:
+  host: localhost
+  port: 5432
+  user: postgres
+  password: postgres
+  name: app
+  ssl_mode: disable 
