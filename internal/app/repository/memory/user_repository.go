@@ -106,3 +106,31 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 
 	return nil
 }
+
+// FindByEmail returns a user by email
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, user := range r.users {
+		if user.Email == email {
+			return user, nil
+		}
+	}
+
+	return model.User{}, repository.ErrNotFound
+}
+
+// ExistsByEmail checks if a user with the given email exists
+func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	r.mu.RLock()
+	defer r.mu.RUnlock()
+
+	for _, user := range r.users {
+		if user.Email == email {
+			return true, nil
+		}
+	}
+
+	return false, nil
+}

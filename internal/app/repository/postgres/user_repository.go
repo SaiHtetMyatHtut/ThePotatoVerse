@@ -148,3 +148,40 @@ func (r *userRepository) Delete(ctx context.Context, id string) error {
 
 	return nil
 }
+
+// FindByEmail returns a user by email
+func (r *userRepository) FindByEmail(ctx context.Context, email string) (model.User, error) {
+	query := `
+		SELECT id, name, email, created_at, updated_at
+		FROM users
+		WHERE email = $1
+	`
+
+	var user model.User
+	err := r.db.Pool.QueryRow(ctx, query, email).Scan(
+		&user.ID, &user.Name, &user.Email, &user.CreatedAt, &user.UpdatedAt,
+	)
+	if err != nil {
+		if errors.Is(err, pgx.ErrNoRows) {
+			return model.User{}, repository.ErrNotFound
+		}
+		return model.User{}, err
+	}
+
+	return user, nil
+}
+
+// ExistsByEmail checks if a user with the given email exists
+func (r *userRepository) ExistsByEmail(ctx context.Context, email string) (bool, error) {
+	query := `
+		SELECT EXISTS(SELECT 1 FROM users WHERE email = $1)
+	`
+
+	var exists bool
+	err := r.db.Pool.QueryRow(ctx, query, email).Scan(&exists)
+	if err != nil {
+		return false, err
+	}
+
+	return exists, nil
+}

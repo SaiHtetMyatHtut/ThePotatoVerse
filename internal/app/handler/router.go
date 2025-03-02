@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/ThePotatoVerse/internal/app/graphql"
+	"github.com/ThePotatoVerse/internal/app/middleware"
 	"github.com/ThePotatoVerse/internal/app/repository/memory"
 	"github.com/ThePotatoVerse/internal/app/service"
 	"github.com/ThePotatoVerse/pkg/logger"
@@ -36,46 +38,58 @@ func NewRouter(log logger.Logger) http.Handler {
 
 	// Initialize services
 	userService := service.NewUserService(log, userRepo)
+	authService := service.NewAuthService(log, userRepo, "your-jwt-secret", 24*time.Hour)
+
+	// Create middleware
+	authMiddleware := middleware.AuthMiddleware(authService, log)
 
 	// API routes
 	api := router.Group("/api/v1")
 	{
-		// User routes
+		// Auth routes
+		authHandler := NewAuthHandler(authService, log)
+		authHandler.RegisterRoutes(api)
+
+		// User routes (protected by auth)
 		userHandler := NewUserHandler(log, userService)
 		users := api.Group("/users")
+		users.Use(authMiddleware)
 		{
 			users.GET("", userHandler.List)
-			users.POST("", userHandler.Create)
 			users.GET("/:id", userHandler.Get)
+			users.POST("", userHandler.Create)
 			users.PUT("/:id", userHandler.Update)
 			users.DELETE("/:id", userHandler.Delete)
 		}
 	}
 
+	// GraphQL endpoint
+	graphqlServer, err := graphql.NewServer(log, authService)
+	if err != nil {
+		log.Fatal("Failed to create GraphQL server", "error", err)
+	}
+	router.POST("/graphql", gin.WrapH(graphqlServer.Handler()))
+
 	return router
 }
 
-// loggerMiddleware creates a gin middleware for logging requests
+// loggerMiddleware creates a middleware for logging requests
 func loggerMiddleware(log logger.Logger) gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Start timer
 		start := time.Now()
+		path := c.Request.URL.Path
+		method := c.Request.Method
 
-		// Process request
 		c.Next()
 
-		// Log request
-		latency := time.Since(start)
+		end := time.Now()
+		latency := end.Sub(start)
 		status := c.Writer.Status()
-		method := c.Request.Method
-		path := c.Request.URL.Path
-		ip := c.ClientIP()
 
 		log.Info("Request",
-			"status", status,
 			"method", method,
 			"path", path,
-			"ip", ip,
+			"status", status,
 			"latency", latency,
 		)
 	}
